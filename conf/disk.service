@@ -1,0 +1,31 @@
+[Unit]
+Description=rpimon - occupation du disque par dossier
+After=local-fs.target
+
+[Service]
+Type=oneshot
+User=__APP__
+Group=__APP__
+ExecStart=/usr/bin/python3 __INSTALL_DIR__/rpimon-cli --config __INSTALL_DIR__/rpimon.conf disk-scan
+# Parcourir tous les dossiers pour en mesurer la taille : seule capacité accordée
+AmbientCapabilities=CAP_DAC_READ_SEARCH
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH
+Nice=19
+IOSchedulingClass=idle
+
+# Durcissement (pas de PrivateTmp ni ProtectHome : /tmp et /home doivent être mesurés)
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=__DATA_DIR__
+PrivateDevices=yes
+PrivateNetwork=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallArchitectures=native

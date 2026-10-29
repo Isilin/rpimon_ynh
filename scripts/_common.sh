@@ -30,6 +30,24 @@ _rpimon_add_config() {
     chown root:root "/usr/local/bin/$app"
 }
 
+# Scan nocturne de l'occupation du disque : service à part, seule capacité CAP_DAC_READ_SEARCH
+_rpimon_add_disk_scan() {
+    ynh_config_add --template="disk.service" --destination="/etc/systemd/system/$app-disk.service"
+    ynh_config_add --template="disk.timer" --destination="/etc/systemd/system/$app-disk.timer"
+    systemctl daemon-reload
+    systemctl enable --now "$app-disk.timer" --quiet
+    # premier scan tout de suite, en arrière-plan (quelques minutes sur une carte SD)
+    systemctl start --no-block "$app-disk.service"
+}
+
+_rpimon_remove_disk_scan() {
+    if [ -e "/etc/systemd/system/$app-disk.timer" ]; then
+        systemctl disable --now "$app-disk.timer" --quiet
+        ynh_safe_rm "/etc/systemd/system/$app-disk.timer"
+    fi
+    ynh_config_remove_systemd "$app-disk"
+}
+
 _rpimon_service_add() {
     yunohost service add "$app" --description="Monitoring du Raspberry Pi (rpimon)"
 }

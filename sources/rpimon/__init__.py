@@ -6,4 +6,4 @@ Uniquement la bibliothèque standard (Python >= 3.9), stockage SQLite :
   daily    moyenne/min/max par jour (heure locale), gardées daily_days (0 = toujours)
 """
 
-__version__ = "1.1.1"
+__version__ = "1.2.0"

@@ -3,12 +3,14 @@
   rpimon run              daemon : collecte + interface web (lancé par systemd)
   rpimon sample           affiche une mesure instantanée (diagnostic)
   rpimon stats            état de la base : taille, plages couvertes, nb de points
+  rpimon disk-scan        occupation du disque par dossier (service rpimon-disk, chaque nuit)
   rpimon migrate [DIR]    importe les anciens fichiers de température (dry-run par défaut)
   rpimon rollup           recalcule les agrégats et applique la rétention
 """
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import os
 import signal
@@ -17,7 +19,7 @@ import sys
 import threading
 import time
 
-from . import __version__, legacy
+from . import __version__, diskusage, legacy
 from .collector import Collector
 from .config import Config
 from .metrics import METRICS
@@ -151,6 +153,24 @@ def cmd_stats(cfg, args):
     return 0
 
 
+def cmd_disk_scan(cfg, args):
+    snap = diskusage.snapshot(cfg.mount)
+    store = Store(cfg.db)
+    try:
+        store.meta_set("disk_usage", json.dumps(snap, separators=(",", ":"), ensure_ascii=False))
+    finally:
+        store.close()
+    fix_owner(*db_files(cfg.db))
+    print("Partition %s : %s utilisés sur %s, %s libres (scan en %.0f s%s)" % (
+        snap["mount"], fmt_bytes(snap["used"]), fmt_bytes(snap["total"]), fmt_bytes(snap["free"]),
+        snap["duration"], ", %s entrées illisibles" % fmt_int(snap["errors"]) if snap["errors"] else ""))
+    w = max(len(it["label"]) for it in snap["items"])
+    for it in snap["items"]:
+        print("  %-*s  %9s  %4.1f %%  %s" % (w, it["label"], fmt_bytes(it["size"]),
+                                          100.0 * it["size"] / max(snap["used"], 1), it["path"] or ""))
+    return 0
+
+
 def cmd_rollup(cfg, args):
     store = Store(cfg.db)
     since = 0 if args.all else safe_since(cfg)
@@ -269,6 +289,7 @@ def build_parser():
     sub.add_parser("run", help="daemon : collecte + interface web")
     sub.add_parser("sample", help="affiche une mesure instantanée")
     sub.add_parser("stats", help="état de la base")
+    sub.add_parser("disk-scan", help="mesure l'occupation du disque par dossier (à lancer en root)")
     r = sub.add_parser("rollup", help="recalcule les agrégats + rétention")
     r.add_argument("--all", action="store_true", help="tout recalculer depuis les données brutes")
     r.add_argument("--vacuum", action="store_true", help="compacter la base ensuite")
@@ -286,7 +307,7 @@ def build_parser():
     return ap
 
 
-COMMANDS = {"run": cmd_run, "sample": cmd_sample, "stats": cmd_stats,
+COMMANDS = {"run": cmd_run, "sample": cmd_sample, "stats": cmd_stats, "disk-scan": cmd_disk_scan,
             "rollup": cmd_rollup, "migrate": cmd_migrate}
 
 

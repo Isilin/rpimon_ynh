@@ -206,6 +206,13 @@
         '<div class="plot"></div><div class="empty-msg">Pas de données sur cette période</div>';
       root.appendChild(card);
     });
+    var disk = el('article', 'card wide disk empty');
+    disk.id = 'disk-usage';
+    disk.innerHTML = '<header><h2>Occupation du disque</h2><span class="meta" id="disk-meta"></span></header>' +
+      '<div class="disk-body"><svg class="donut" viewBox="0 0 220 220" role="img" aria-labelledby="disk-title">' +
+      '<title id="disk-title">Répartition de l\'espace disque</title></svg><table class="disk-legend"></table></div>' +
+      '<p class="disk-note" id="disk-note">Première analyse en cours : quelques minutes, puis chaque nuit.</p>';
+    root.appendChild(disk);
   }
 
   function tooltip(c, band) {
@@ -353,6 +360,89 @@
     document.getElementById('export').href = 'api/export.csv?from=' + rr.from + '&to=' + rr.to;
   }
 
+  // ------------------------------------------------------------------ disque
+  // Ordre fixe des couleurs (validé daltonisme), « Autres » en gris, « Libre » en retrait.
+  var DISK_COLORS = ['--s1', '--s2', '--s3', '--s4', '--s5', '--s6', '--s7', '--s8'];
+  var DF_SCAN = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  var R_OUT = 106, R_IN = 72, C = 110;
+
+  function arcPath(a0, a1) {
+    a1 = Math.min(a1, a0 + 2 * Math.PI - 1e-4);          // un anneau complet se dessine en presque-cercle
+    var large = a1 - a0 > Math.PI ? 1 : 0;
+    function pt(r, a) { return (C + r * Math.cos(a)).toFixed(2) + ' ' + (C + r * Math.sin(a)).toFixed(2); }
+    return 'M' + pt(R_OUT, a0) + 'A' + R_OUT + ' ' + R_OUT + ' 0 ' + large + ' 1 ' + pt(R_OUT, a1) +
+      'L' + pt(R_IN, a1) + 'A' + R_IN + ' ' + R_IN + ' 0 ' + large + ' 0 ' + pt(R_IN, a0) + 'Z';
+  }
+  function clip(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+
+  // Survol ou focus d'une part (anneau) ou d'une ligne (légende) : les deux s'allument ensemble.
+  var diskHighlight = function () {};
+  function bindDiskHover() {
+    var card = document.getElementById('disk-usage');
+    function pick(e) { var t = e.target.closest('[data-i]'); return t ? parseInt(t.getAttribute('data-i'), 10) : null; }
+    [card.querySelector('.donut'), card.querySelector('.disk-legend')].forEach(function (zone) {
+      zone.addEventListener('mouseover', function (e) { diskHighlight(pick(e)); });
+      zone.addEventListener('focusin', function (e) { diskHighlight(pick(e)); });
+      zone.addEventListener('mouseleave', function () { diskHighlight(null); });
+      zone.addEventListener('focusout', function () { diskHighlight(null); });
+    });
+  }
+
+  function renderDisk(d) {
+    var card = document.getElementById('disk-usage');
+    if (!d || !d.ts || !d.items) { card.classList.add('empty'); return; }
+    card.classList.remove('empty');
+    var total = d.used + d.free;
+    var slices = d.items.map(function (it, i) {
+      return { label: it.label, path: it.path, size: it.size, color: it.path ? 'var(' + DISK_COLORS[i] + ')' : 'var(--neutral)' };
+    });
+    slices.push({ label: 'Libre', path: null, size: d.free, color: 'var(--free)' });
+
+    var svg = card.querySelector('.donut'), a = -Math.PI / 2, paths = '';
+    slices.forEach(function (s, i) {
+      var b = a + 2 * Math.PI * s.size / total;
+      paths += '<path data-i="' + i + '" d="' + arcPath(a, b) + '" style="fill:' + s.color + '"></path>';
+      a = b;
+    });
+    var center = '<text class="c-val" x="' + C + '" y="' + (C + 4) + '" text-anchor="middle"></text>' +
+      '<text class="c-sub" x="' + C + '" y="' + (C + 24) + '" text-anchor="middle"></text>';
+    svg.innerHTML = '<title id="disk-title">Répartition de l\'espace disque</title>' + paths + center;
+
+    var rows = slices.map(function (s, i) {
+      return '<tr data-i="' + i + '" tabindex="0"><td><i class="sw" style="background:' + s.color + '"></i></td>' +
+        '<td>' + esc(s.label) + (s.path ? '<span class="path">' + esc(s.path) + '</span>' : '') + '</td>' +
+        '<td class="num">' + fmtBytes(s.size) + '</td><td class="num pct">' + fmt(100 * s.size / total, 1) + ' %</td></tr>';
+    });
+    var table = card.querySelector('.disk-legend');
+    table.innerHTML = rows.join('');
+
+    var val = svg.querySelector('.c-val'), sub = svg.querySelector('.c-sub');
+    function highlight(i) {
+      svg.classList.toggle('hl', i != null);
+      Array.prototype.forEach.call(card.querySelectorAll('[data-i]'), function (e) {
+        e.classList.toggle('on', i != null && e.getAttribute('data-i') === String(i));
+      });
+      if (i == null) {
+        val.textContent = fmt(100 * d.used / total, 0) + ' %';
+        sub.textContent = fmtBytes(d.used) + ' sur ' + fmtBytes(total);
+      } else {
+        val.textContent = fmtBytes(slices[i].size);
+        sub.textContent = clip(slices[i].label, 24);
+      }
+    }
+    diskHighlight = highlight;
+    highlight(null);
+
+    document.getElementById('disk-meta').textContent = 'partition ' + d.mount + ' · analysée le ' + DF_SCAN.format(d.ts * 1000) +
+      ' · recalculée chaque nuit';
+    var note = document.getElementById('disk-note');
+    note.textContent = d.errors ? fmt(d.errors, 0) + ' élément(s) illisible(s) ignoré(s) lors de l\'analyse.' : '';
+    note.hidden = !d.errors;
+  }
+  function loadDisk() {
+    return getJSON('api/disk').then(renderDisk).catch(function (e) { console.error('rpimon: disque', e); });
+  }
+
   var loading = null;
   function loadSeries() {
     var r = currentRange();
@@ -383,6 +473,7 @@
   // ------------------------------------------------------------------ démarrage
   function init() {
     buildCards();
+    bindDiskHover();
     document.getElementById('ranges').addEventListener('click', function (e) {
       var b = e.target.closest('button');
       if (!b) return;
@@ -413,7 +504,7 @@
     var onTheme = function () { themeVersion++; if (lastSeries) renderSeries(lastSeries); };
     if (mq.addEventListener) mq.addEventListener('change', onTheme); else if (mq.addListener) mq.addListener(onTheme);
 
-    loadMeta().catch(function () {}).then(function () { return Promise.all([loadCurrent(), loadSeries()]); });
+    loadMeta().catch(function () {}).then(function () { return Promise.all([loadCurrent(), loadSeries(), loadDisk()]); });
 
     var tick = 0;
     setInterval(function () {
@@ -422,7 +513,7 @@
       loadCurrent();
       var short = !state.custom && state.preset !== 'all' && state.preset <= 172800;
       if (short || tick % 20 === 0) loadSeries();   // 30 s pour ≤ 48 h, sinon toutes les 10 min
-      if (tick % 20 === 0) loadMeta().catch(function () {});
+      if (tick % 20 === 0) { loadMeta().catch(function () {}); loadDisk(); }
     }, 30000);
     document.addEventListener('visibilitychange', function () { if (!document.hidden) { loadCurrent(); loadSeries(); } });
   }

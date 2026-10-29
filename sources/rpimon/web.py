@@ -172,6 +172,15 @@ class Api:
             "vcgencmd": bool(self.col and self.col.vcgencmd),
         }
 
+    def disk(self):
+        """Dernier scan d'occupation du disque (rpimon disk-scan), ou {"ts": null}."""
+        con = connect_ro(self.cfg.db)
+        try:
+            r = con.execute("SELECT v FROM meta WHERE k = 'disk_usage'").fetchone()
+        finally:
+            con.close()
+        return json.loads(r[0]) if r else {"ts": None}
+
     def meta(self):
         con = connect_ro(self.cfg.db)
         try:
@@ -244,6 +253,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(api.current())
             if route == "/api/series":
                 return self._json(api.series(q))
+            if route == "/api/disk":
+                return self._json(api.disk())
             if route == "/api/export.csv":
                 body, name = api.export_csv(q)
                 return self._send(200, body, "text/csv; charset=utf-8",

@@ -14,6 +14,8 @@ fi
 
 ynh_config_remove_systemd
 
+_rpimon_remove_disk_scan
+
 ynh_config_remove_nginx
 
 ynh_safe_rm "/usr/local/bin/$app"

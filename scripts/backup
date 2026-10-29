@@ -15,6 +15,9 @@ ynh_backup "/etc/nginx/conf.d/$domain.d/$app.conf"
 
 ynh_backup "/etc/systemd/system/$app.service"
 
+ynh_backup "/etc/systemd/system/$app-disk.service"
+ynh_backup "/etc/systemd/system/$app-disk.timer"
+
 ynh_backup "/usr/local/bin/$app"
 
 ynh_print_info "Backup script completed for $app. (YunoHost will then actually copy those files to the archive)."

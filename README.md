@@ -62,6 +62,8 @@ La page est sur `https://<domaine>/rpimon/` et une tuile apparaît dans le porta
   réseau, fréquence, alimentation (`vcgencmd get_throttled`) ;
 - périodes 6 h à « Tout », résolution adaptée (brut, horaire puis journalier, avec zone min/max) ;
 - cliquer-glisser pour zoomer, curseurs synchronisés, export CSV (`;`, virgule décimale) ;
+- occupation du disque : anneau et tableau des dossiers qui prennent la place (sauvegardes, données
+  de chaque app, journaux, caches…), recalculés chaque nuit ;
 - thème clair ou sombre selon le système, affichage mobile.
 
 Commandes :
@@ -69,6 +71,7 @@ Commandes :
 ```sh
 sudo rpimon stats                  # taille de la base, plages couvertes, dernière mesure
 sudo rpimon sample                 # mesure instantanée (diagnostic)
+sudo rpimon disk-scan              # recalculer l'occupation du disque maintenant
 sudo rpimon rollup --vacuum        # recalculer les agrégats récents + compacter
 sudo journalctl -u rpimon -f       # logs du service
 ```
@@ -101,6 +104,7 @@ sources/rpimon/      code Python (bibliothèque standard uniquement)
   store.py           SQLite : brut, agrégats, rétention
   web.py             API JSON + fichiers statiques
   legacy.py          import des anciens relevés
+  diskusage.py       occupation du disque par dossier
   static/            interface (HTML, CSS, JS, uPlot)
 sources/rpimon-cli   point d'entrée
 manifest.toml        paquet YunoHost (format v2, helpers 2.1)
@@ -125,6 +129,11 @@ qui pointe `[storage] db` vers un fichier accessible.
   Les lignes supprimées par la rétention sont réutilisées : la base ne grossit plus en régime établi.
 - **Sous-tension** : un point vaut 1 si la tension est basse au moment de la mesure, ou si le bit
   « depuis le démarrage » de `get_throttled` vient d'apparaître. En agrégé : pourcentage du temps.
+- **Occupation du disque** : un service séparé (`rpimon-disk`, lancé chaque nuit par un timer systemd)
+  mesure la taille de chaque dossier de la partition, comme `du`, sans changer de système de fichiers.
+  Il descend dans les dossiers dominants (`/home` -> `/home/yunohost.app` -> une part par app) jusqu'à
+  des emplacements parlants. Pour tout lire sans être root, il reçoit la seule capacité
+  `CAP_DAC_READ_SEARCH` (lire et parcourir) ; le serveur web, lui, n'en a aucune.
 - **Sécurité** : écoute sur `127.0.0.1` uniquement, accès via nginx et le SSO, service systemd durci
   (`ProtectSystem=strict`, écriture limitée au dossier de données, `NoNewPrivileges`…).
 
