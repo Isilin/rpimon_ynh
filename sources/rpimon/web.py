@@ -88,25 +88,29 @@ class Api:
         keys, t0, t1, res = self._params(q)
         res, cols, rows = self.query(keys, t0, t1, res)
         ts = [r[0] for r in rows]
+        diffs = [b - a for a, b in zip(ts, ts[1:])]
         if res == "raw":
-            diffs = [b - a for a, b in zip(ts, ts[1:])]
             step = int(statistics.median(diffs)) if diffs else self.cfg.interval
         else:
             step = 3600 if res == "hourly" else 86400
         out_t = []
         out = {c: [] for c in cols}
-        prev = None
-        for r in rows:
+        for n, r in enumerate(rows):
             t = r[0]
-            if prev is not None and t - prev > step * 2.5:   # trou => coupure de la courbe
-                out_t.append(prev + step)
-                for c in cols:
-                    out[c].append(None)
+            if n:
+                # Trou => coupure de la courbe, si l'intervalle est grand devant le pas médian ET
+                # devant ses voisins : l'historique importé (5 min) côtoie les mesures à la
+                # minute sans que chacun de ses intervalles passe pour un trou.
+                d = diffs[n - 1]
+                near = max(diffs[max(0, n - 2):n - 1] + diffs[n:n + 1], default=0)
+                if d > 2.5 * max(step, near):
+                    out_t.append(ts[n - 1] + step)
+                    for c in cols:
+                        out[c].append(None)
             out_t.append(t)
             for i, c in enumerate(cols, 1):
                 x = r[i]
                 out[c].append(None if x is None else round(x, DEC[c[0]] + 1))
-            prev = t
         s = {}
         for (k, a), vals in out.items():
             s.setdefault(k, {})[a] = vals

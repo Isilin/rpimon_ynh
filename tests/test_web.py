@@ -30,6 +30,23 @@ def test_series_raw_with_gap(cfg, filled):
     assert vals.count(None) == 1                     # le trou coupe la courbe une fois
 
 
+def test_series_mixed_cadence_after_migration(cfg):
+    """Historique importé à 5 min puis collecteur à la minute : seul le vrai trou coupe."""
+    store = Store(cfg.db)
+    now = int(time.time()) // 60 * 60
+    start = now - 4 * 3600
+    legacy = [(start + i * 300, {"temp": 45.0}) for i in range(24)]                  # 2 h à 5 min
+    live = [(start + 7200 + i * 60, {"temp": 46.0, "cpu": 5.0}) for i in range(120)]  # 2 h à 1 min
+    live = [r for r in live if not (now - 3600 <= r[0] < now - 2400)]                # trou de 20 min
+    store.insert(legacy + live)
+    store.close()
+    r = Api(cfg).series({"keys": ["temp"], "from": [str(start)], "to": [str(now)]})
+    assert r["res"] == "raw" and r["step"] == 60
+    vals = r["s"]["temp"]["avg"]
+    assert vals.count(None) == 1
+    assert vals.index(None) > 24                     # pas dans la partie importée
+
+
 def test_series_auto_picks_hourly_for_long_ranges(cfg, filled):
     api = Api(cfg)
     r = api.series({"keys": ["temp"], "from": [str(filled - 10 * 86400)], "to": [str(filled)]})
