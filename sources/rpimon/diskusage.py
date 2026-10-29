@@ -17,8 +17,9 @@ import time
 
 MAX_DEPTH = 5            # profondeur des dossiers dont on garde la taille
 MAX_SLICES = 8           # parts du camembert (une couleur chacune), hors « Autres » et « Libre »
-EXPAND_SHARE = 0.20      # on détaille un dossier qui pèse au moins 20 % de l'utilisé...
-MIN_SHARE = 0.02         # ...en parts d'au moins 2 % (le reste va dans « Autres »)
+EXPAND_SHARE = 0.04     # on détaille tout conteneur d'au moins 4 % de l'utilisé...
+MIN_SHARE = 0.02         # ...en parts d'au moins 2 % ; on garde les MAX_SLICES plus grosses
+                         # feuilles, le reste va dans « Autres »
 
 # Emplacements connus, en chemins relatifs à la partition : (motif, libellé, feuille).
 # Une feuille est un emplacement parlant qu'on ne découpe pas davantage (les données d'une app,
@@ -124,8 +125,9 @@ def describe(logical):
 def breakdown(sizes, root, used, max_slices=MAX_SLICES):
     """Parts parlantes de l'espace utilisé : [{path, label, size}], la dernière = « Autres ».
 
-    On part des dossiers de la racine et on détaille le plus gros conteneur tant qu'il pèse
-    au moins EXPAND_SHARE de l'utilisé (/home -> /home/yunohost.app -> une part par app).
+    On part des dossiers de la racine et on détaille chaque conteneur qui pèse au moins
+    EXPAND_SHARE de l'utilisé (/home -> /home/yunohost.app -> une part par app), jusqu'aux
+    emplacements parlants ; on garde ensuite les max_slices plus grosses parts.
     """
     root = os.path.abspath(root)
     scanned = sizes.get(root, 0)
@@ -145,9 +147,8 @@ def breakdown(sizes, root, used, max_slices=MAX_SLICES):
         cand[2] = False
         big = [node(p) for p in _children(sizes, cand[0]) if sizes[p] >= MIN_SHARE * base]
         remainder = cand[1] - sum(k[1] for k in big)
-        shown = sum(1 for it in items if it[1] >= MIN_SHARE * base)   # les petits iront dans « Autres »
-        if not big or shown - 1 + len(big) + (remainder >= MIN_SHARE * base) > max_slices:
-            continue                                       # rien de parlant dessous, ou trop de parts
+        if not big:
+            continue                                       # rien de parlant dessous
         items.remove(cand)
         items += big
         if remainder >= MIN_SHARE * base:

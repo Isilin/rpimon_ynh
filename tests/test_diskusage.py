@@ -90,6 +90,22 @@ def test_breakdown_from_filesystem_root():
     assert sum(it["size"] for it in items) == 1000
 
 
+def test_breakdown_on_a_typical_yunohost_pi():
+    """Arborescence calquée sur une vraie Pi : on veut les responsables, pas les conteneurs."""
+    root = os.path.abspath(os.sep)
+    tree = {(): 26.3, ("usr",): 5.79, ("home",): 8.64, ("home", "yunohost.backup"): 5.17,
+            ("home", "yunohost.app"): 3.47, ("home", "yunohost.app", "nextcloud"): 2.4,
+            ("home", "yunohost.app", "vaultwarden"): 0.6, ("opt",): 3.93, ("opt", "node_n"): 3.5,
+            ("var",): 7.4, ("var", "lib"): 2.71, ("var", "lib", "fail2ban"): 1.3, ("var", "lib", "mongodb"): 0.8,
+            ("var", "log"): 2.05, ("var", "log", "journal"): 1.7, ("var", "cache"): 1.26,
+            ("var", "cache", "apt"): 1.2, ("var", "www"): 1.21, ("var", "www", "nextcloud"): 0.9}
+    sizes = {os.path.join(root, *k): v * 1e9 for k, v in tree.items()}
+    labels = [it["label"] for it in diskusage.breakdown(sizes, root, 26.7e9)]
+    assert labels == ["Système (programmes)", "Sauvegardes YunoHost", "Node.js (versions installées)",
+                      "Données de l'app nextcloud", "Journal systemd", "Base fail2ban",
+                      "Cache apt (paquets téléchargés)", "Code de l'app nextcloud", "Autres"]
+
+
 def test_breakdown_counts_unscanned_space_in_others():
     r = os.path.abspath("racine")
     sizes = {r: 100, os.path.join(r, "usr"): 60, os.path.join(r, "var"): 40}
