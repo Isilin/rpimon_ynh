@@ -108,6 +108,8 @@ sources/rpimon/      code Python (bibliothèque standard uniquement)
   static/            interface (HTML, CSS, JS, uPlot)
 sources/rpimon-cli   point d'entrée
 manifest.toml        paquet YunoHost (format v2, helpers 2.1)
+doc/                 description, notes d'admin, icône (logo.png)
+tools/make_logo.py   génère l'icône
 scripts/, conf/      scripts d'installation et modèles de configuration
 tests/               pytest
 ```
@@ -115,8 +117,11 @@ tests/               pytest
 ```sh
 pip install pytest ruff
 pytest
-ruff check sources tests
+ruff check sources tests tools
 ```
+
+L'icône (`doc/logo.png`, posée sur la tuile du portail à l'installation) se régénère avec
+`pip install pillow && python tools/make_logo.py`.
 
 Lancer en local sans YunoHost : `python3 sources/rpimon-cli --config ma.conf run` avec une config
 qui pointe `[storage] db` vers un fichier accessible.

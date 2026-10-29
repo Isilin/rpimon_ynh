@@ -2,3 +2,4 @@
 * text=auto eol=lf
 # uPlot minifié : pas de diff, exclu des statistiques de langage
 sources/rpimon/static/uPlot.* -diff linguist-vendored
+*.png binary

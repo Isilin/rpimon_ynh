@@ -48,6 +48,14 @@ _rpimon_remove_disk_scan() {
     ynh_config_remove_systemd "$app-disk"
 }
 
+# Logo de la tuile du portail et de la liste des apps (option --logo : YunoHost >= 12.1)
+_rpimon_set_logo() {
+    local logo="$YNH_APP_BASEDIR/doc/logo.png"
+    if [ -f "$logo" ] && yunohost user permission update --help 2>/dev/null | grep -q -- "--logo"; then
+        yunohost user permission update "$app.main" --logo "$logo" >/dev/null
+    fi
+}
+
 _rpimon_service_add() {
     yunohost service add "$app" --description="Monitoring du Raspberry Pi (rpimon)"
 }

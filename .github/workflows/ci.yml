@@ -28,7 +28,7 @@ jobs:
         with:
           python-version: "3.13"
       - run: pip install ruff
-      - run: ruff check sources tests sources/rpimon-cli
+      - run: ruff check sources tests tools sources/rpimon-cli
       - name: shellcheck (scripts YunoHost)
         # SC1091 : helpers YunoHost absents ici ; SC2154 : variables fournies par YunoHost
         run: shellcheck -s bash -e SC1091,SC2154 scripts/*

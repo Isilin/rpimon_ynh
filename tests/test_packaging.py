@@ -1,6 +1,7 @@
 """Cohérence du paquet YunoHost (manifest, modèles de configuration, scripts)."""
 import os
 import re
+import struct
 import sys
 
 import pytest
@@ -28,6 +29,15 @@ def test_conf_templates_use_known_vars(name):
         text = f.read()
     used = {m.lower() for m in re.findall(r"__([A-Z0-9_]+?)__", text)}
     assert used <= KNOWN_VARS
+
+
+def test_logo_is_a_square_png():
+    """YunoHost n'accepte que du PNG pour le logo d'une app (yunohost user permission update --logo)."""
+    with open(os.path.join(ROOT, "doc", "logo.png"), "rb") as f:
+        head = f.read(24)
+    assert head[:8] == bytes.fromhex("89504e470d0a1a0a")       # signature PNG
+    width, height = struct.unpack(">II", head[16:24])
+    assert width == height >= 256
 
 
 def test_scripts_use_lf():

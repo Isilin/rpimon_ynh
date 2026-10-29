@@ -30,6 +30,8 @@ ynh_restore "/usr/local/bin/$app"
 
 _rpimon_service_add
 
+_rpimon_set_logo
+
 ynh_script_progression "Reloading NGINX web server and $app's service..."
 
 ynh_systemctl --service="$app" --action="start" --log_path="systemd" --wait_until="interface web sur"

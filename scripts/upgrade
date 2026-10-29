@@ -29,6 +29,8 @@ _rpimon_add_disk_scan
 
 _rpimon_service_add
 
+_rpimon_set_logo
+
 ynh_script_progression "Starting $app's systemd service..."
 
 ynh_systemctl --service="$app" --action="start" --log_path="systemd" --wait_until="interface web sur"
