@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # 3.9 = Debian 11 (YunoHost 11), 3.11 = Debian 12 (YunoHost 12), 3.13 = Debian 13
+        python: ["3.9", "3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install pytest
+      - run: pytest
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install ruff
+      - run: ruff check sources tests sources/rpimon-cli
+      - name: shellcheck (scripts YunoHost)
+        # SC1091 : helpers YunoHost absents ici ; SC2154 : variables fournies par YunoHost
+        run: shellcheck -s bash -e SC1091,SC2154 scripts/*

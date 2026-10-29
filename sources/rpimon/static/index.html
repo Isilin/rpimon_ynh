@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Raspberry Pi · rpimon</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='3' width='26' height='26' rx='7' fill='%232a78d6'/%3E%3Cpath d='M8 20l5-6 4 4 7-8' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="static/uPlot.min.css">
+<link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1 id="host">Raspberry Pi</h1>
+    <p class="sub" id="sysinfo">&nbsp;</p>
+  </div>
+  <p class="live" id="live"><span class="dot" aria-hidden="true"></span><span id="live-text">Connexion…</span></p>
+</header>
+
+<main>
+  <section class="tiles" id="tiles" aria-label="État actuel"></section>
+
+  <div class="toolbar">
+    <div class="seg" role="group" aria-label="Période" id="ranges">
+      <button type="button" data-r="21600">6 h</button>
+      <button type="button" data-r="86400" class="on">24 h</button>
+      <button type="button" data-r="604800">7 j</button>
+      <button type="button" data-r="2592000">30 j</button>
+      <button type="button" data-r="31536000">1 an</button>
+      <button type="button" data-r="all">Tout</button>
+    </div>
+    <span class="range-label" id="range-label"></span>
+    <span class="spacer"></span>
+    <button type="button" class="ghost" id="reset" hidden>Annuler le zoom</button>
+    <a class="ghost" id="export" href="#">Exporter en CSV</a>
+  </div>
+  <p class="hint">Cliquer-glisser sur un graphique pour zoomer : la résolution s'adapte à la période.</p>
+
+  <section class="charts" id="charts"></section>
+</main>
+
+<footer id="foot"></footer>
+
+<script src="static/uPlot.iife.min.js"></script>
+<script src="static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+#!/bin/bash
+
+source _common.sh
+source /usr/share/yunohost/helpers
+
+_rpimon_default_settings
+
+ynh_script_progression "Installing source files..."
+
+_rpimon_setup_source
+
+ynh_script_progression "Adding $app's configuration files..."
+
+_rpimon_add_config
+
+ynh_script_progression "Adding system configurations related to $app..."
+
+ynh_config_add_nginx
+
+ynh_config_add_systemd
+
+_rpimon_service_add
+
+ynh_script_progression "Starting $app's systemd service..."
+
+ynh_systemctl --service="$app" --action="start" --log_path="systemd" --wait_until="interface web sur"
+
+ynh_script_progression "Installation of $app completed"

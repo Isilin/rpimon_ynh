@@ -1,0 +1,23 @@
+# Pas de paquet Python publié : ce fichier ne sert qu'à configurer les outils de développement.
+# Le code est déployé tel quel par le paquet YunoHost (scripts/), sans dépendance.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+target-version = "py39"
+line-length = 120
+src = ["sources", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM"]
+ignore = [
+    "E241",   # alignement en colonnes de METRICS
+    "UP031",  # formatage %s conservé (lisible, homogène avec sqlite)
+    "SIM105",
+    "SIM108", # pas de ternaires imbriqués
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["rpimon"]

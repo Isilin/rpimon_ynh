@@ -1,0 +1,34 @@
+#!/bin/bash
+
+source _common.sh
+source /usr/share/yunohost/helpers
+
+ynh_script_progression "Stopping $app's systemd service..."
+
+ynh_systemctl --service="$app" --action="stop"
+
+ynh_script_progression "Ensuring downward compatibility..."
+
+_rpimon_default_settings
+
+ynh_script_progression "Upgrading source files..."
+
+_rpimon_setup_source
+
+ynh_script_progression "Updating $app's configuration files..."
+
+_rpimon_add_config
+
+ynh_script_progression "Upgrading system configurations related to $app..."
+
+ynh_config_add_nginx
+
+ynh_config_add_systemd
+
+_rpimon_service_add
+
+ynh_script_progression "Starting $app's systemd service..."
+
+ynh_systemctl --service="$app" --action="start" --log_path="systemd" --wait_until="interface web sur"
+
+ynh_script_progression "Upgrade of $app completed"

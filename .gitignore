@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+*.db
+*.db-wal
+*.db-shm
+
+# fichiers locaux de déploiement (clé, accès) : jamais versionnés
+.local/

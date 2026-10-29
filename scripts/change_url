@@ -1,0 +1,12 @@
+#!/bin/bash
+
+source _common.sh
+source /usr/share/yunohost/helpers
+
+# rpimon n'utilise que des URL relatives : seul nginx change.
+
+ynh_script_progression "Updating NGINX web server configuration..."
+
+ynh_config_change_url_nginx
+
+ynh_script_progression "Change of URL completed for $app"

@@ -1,0 +1,11 @@
+#!/usr/bin/env python3
+"""Point d'entrée de rpimon (équivaut à `python3 -m rpimon`).
+
+Lancé par chemin, Python place ce dossier en tête de sys.path : le paquet rpimon
+voisin est toujours celui importé, quel que soit le dossier courant.
+"""
+import sys
+
+from rpimon.cli import main
+
+sys.exit(main())
